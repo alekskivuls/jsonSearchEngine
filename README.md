@@ -1,17 +1,17 @@
-#JSON Search Engine
+# JSON Search Engine
 Engine to index JSON files and search for properties.
 
-###Building
+### Building
 ```
 go build
 ```
 
-###Running
+### Running
 ```
 ./jsonSearchEngine
 ```
 
-###Formatting
+### Formatting
 ```
 gofmt -w -e -s -l .
 ```
