@@ -2,8 +2,15 @@ package main
 
 import (
 	"fmt"
+	"os"
+
+	"github.com/alekskivuls/jsonSearchEngine/common"
+	"github.com/alekskivuls/jsonSearchEngine/indexer"
 )
 
 func main() {
-	fmt.Println("TODO")
+	files := common.GetJsonFilesFromPath(os.Args[1:])
+	index, duration := indexer.Index(files)
+	fmt.Println("Took", duration, "to index")
+	fmt.Print(index)
 }
