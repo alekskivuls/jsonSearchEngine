@@ -10,9 +10,9 @@ import (
 	"text/scanner"
 )
 
-//Mapping vocab terms to document names
 type InvertedIndex struct {
-	index map[string][]string
+	dict map[string]map[int][]int
+	docs map[int]string
 }
 
 type Document struct {
@@ -23,39 +23,50 @@ type Document struct {
 
 func Index(files []string) InvertedIndex {
 	var index InvertedIndex
-	index.index = make(map[string][]string)
+	index.dict = make(map[string]map[int][]int)
+	index.docs = make(map[int]string)
+
 	var doc Document
 	for _, file := range files {
 		raw, _ := ioutil.ReadFile(file)
 		if err := json.Unmarshal(raw, &doc); err != nil {
 			log.Fatal(err)
 		}
-		tokenize(index, doc.Body, file)
+		docId := len(index.docs)
+		index.docs[docId] = file
+		tokenize(index, docId, doc.Body)
 	}
 	return index
 }
 
-func tokenize(index InvertedIndex, text string, docName string) {
+func tokenize(index InvertedIndex, docId int, text string) {
 	var s scanner.Scanner
 	s.Init(strings.NewReader(text))
 	for token := s.Scan(); token != scanner.EOF; token = s.Scan() {
-		//fmt.Printf("%d: %s\n", s.Position.Offset, s.TokenText())
-		index.index[s.TokenText()] = append(index.index[s.TokenText()], docName)
+		if docMap, ok := index.dict[s.TokenText()]; ok {
+			if posting, ok := docMap[docId]; ok {
+				index.dict[s.TokenText()][docId] = append(posting, s.Position.Offset)
+			} else {
+				index.dict[s.TokenText()][docId] = []int{s.Position.Offset}
+			}
+		} else {
+			index.dict[s.TokenText()] = map[int][]int{docId: {s.Position.Offset}}
+		}
 	}
 }
 
 func (index InvertedIndex) String() string {
 	var buffer bytes.Buffer
-	for key, value := range index.index {
+	for key, value := range index.dict {
 		buffer.WriteString(fmt.Sprint(key, ": ", value, "\n"))
 	}
 	return buffer.String()
 }
 
 func (index InvertedIndex) Size() int {
-	return len(index.index)
+	return len(index.dict)
 }
 
-func (index InvertedIndex) Search(query string) []string {
-	return index.index[query]
+func (index InvertedIndex) Search(query string) map[int][]int {
+	return index.dict[query]
 }

@@ -20,6 +20,7 @@ func main() {
 	fmt.Print("Enter search term: ")
 	var input string
 	fmt.Scanln(&input)
-	fmt.Print(input)
-	fmt.Println(index.Search(input))
+	for k, v := range index.Search(input) {
+		fmt.Println(k, ": ", v)
+	}
 }
