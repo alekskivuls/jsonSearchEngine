@@ -44,11 +44,7 @@ func tokenize(index InvertedIndex, docId int, text string) {
 	s.Init(strings.NewReader(text))
 	for token := s.Scan(); token != scanner.EOF; token = s.Scan() {
 		if docMap, ok := index.dict[s.TokenText()]; ok {
-			if posting, ok := docMap[docId]; ok {
-				index.dict[s.TokenText()][docId] = append(posting, s.Position.Offset)
-			} else {
-				index.dict[s.TokenText()][docId] = []int{s.Position.Offset}
-			}
+			index.dict[s.TokenText()][docId] = append(docMap[docId], s.Position.Offset)
 		} else {
 			index.dict[s.TokenText()] = map[int][]int{docId: {s.Position.Offset}}
 		}
