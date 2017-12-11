@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"strings"
-	"text/scanner"
+	"unicode"
 )
 
 type InvertedIndex struct {
@@ -27,27 +26,43 @@ func Index(files []string) InvertedIndex {
 	index.docs = make(map[int]string)
 
 	var doc Document
-	for _, file := range files {
+	for docId, file := range files {
+		//go func(file string) {
 		raw, _ := ioutil.ReadFile(file)
 		if err := json.Unmarshal(raw, &doc); err != nil {
 			log.Fatal(err)
 		}
-		docId := len(index.docs)
 		index.docs[docId] = file
 		tokenize(index, docId, doc.Body)
+		//}(file)
 	}
 	return index
 }
 
 func tokenize(index InvertedIndex, docId int, text string) {
-	var s scanner.Scanner
-	s.Init(strings.NewReader(text))
-	for token := s.Scan(); token != scanner.EOF; token = s.Scan() {
-		if docMap, ok := index.dict[s.TokenText()]; ok {
-			index.dict[s.TokenText()][docId] = append(docMap[docId], s.Position.Offset)
-		} else {
-			index.dict[s.TokenText()] = map[int][]int{docId: {s.Position.Offset}}
+	var buffer bytes.Buffer
+	for currPos, rune := range text {
+		switch {
+		case unicode.IsPunct(rune):
+		case unicode.IsSpace(rune):
+			if buffer.Len() != 0 {
+				putToken(index, docId, buffer.String(), currPos-buffer.Len())
+				buffer.Reset()
+			}
+		default:
+			buffer.WriteRune(rune)
 		}
+	}
+	if buffer.Len() != 0 {
+		putToken(index, docId, buffer.String(), len(text)-buffer.Len())
+	}
+}
+
+func putToken(index InvertedIndex, docId int, token string, offset int) {
+	if _, ok := index.dict[token]; ok {
+		index.dict[token][docId] = append(index.dict[token][docId], offset)
+	} else {
+		index.dict[token] = map[int][]int{docId: {offset}}
 	}
 }
 
